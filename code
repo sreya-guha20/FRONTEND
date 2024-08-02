@@ -1,0 +1,136 @@
+CSS CODE:
+.Apps {
+  text-align: center;
+  padding: 10px;
+}
+
+textarea {
+  width: 70%;
+  height: 99px;
+  margin: 10px 0;
+  padding: 10px;
+  font-size: 1rem;
+}
+
+button {
+  padding: 10px 20px;
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.error {
+  color: blue;
+}
+
+.response {
+  margin-top: 20px;
+  text-align: left;
+  white-space: pre-wrap;
+  font-family: monospace;
+}
+
+.basic-multi-select {
+  width: 80%;
+  margin: 20px 0;
+}
+
+JAVASCRIPT:
+
+import React, { useState } from 'react';
+import Select from 'react-select';
+import './Apps.css';
+
+const options = [
+  { value: 'alphabets', label: 'Alphabets' },
+  { value: 'numbers', label: 'Numbers' },
+  { value: 'highestAlphabet', label: 'Highest Alphabet' },
+];
+
+function App() {
+  const [jsonInput, setJsonInput] = useState('');
+  const [jsonError, setJsonError] = useState(null);
+  const [response, setResponse] = useState(null);
+  const [selectedOptions, setSelectedOptions] = useState([]);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setJsonError(null);
+
+    try {
+      const parsedJson = JSON.parse(jsonInput);
+      if (!parsedJson.data || !Array.isArray(parsedJson.data)) {
+        throw new Error('Invalid JSON structure. Expected format: { "data": ["A", "B", "C"] }');
+      }
+
+      const res = await fetch('http://localhost:5000/api/process', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(parsedJson),
+      });
+
+      const data = await res.json();
+      setResponse(data);
+    } catch (error) {
+      setJsonError(error.message);
+      setResponse(null);
+    }
+  };
+
+  const filteredResponse = () => {
+    if (!response) return null;
+
+    const result = {};
+    selectedOptions.forEach(option => {
+      if (response[option.value]) {
+        result[option.label] = response[option.value];
+      }
+    });
+    return result;
+  };
+
+  return (
+    <div className="Apps">
+      <header className="Apps-header">
+        <h1>Roll number</h1>
+        <form onSubmit={handleSubmit}>
+          <textarea
+            value={jsonInput}
+            onChange={(e) => setJsonInput(e.target.value)}
+            placeholder='Enter JSON like { "data": ["A", "C", "z"] }'
+          />
+          {jsonError && <p className="error">{jsonError}</p>}
+          <button type="submit">Submit</button>
+        </form>
+
+        {response && (
+          <>
+            <Select
+              isMulti
+              name="options"
+              options={options}
+              className="basic-multi-select"
+              classNamePrefix="select"
+              onChange={setSelectedOptions}
+            />
+            <div className="response">
+              <h2>Response:</h2>
+              <pre>{JSON.stringify(filteredResponse(), null, 2)}</pre>
+            </div>
+          </>
+        )}
+      </header>
+
+OUTPUT:
+{
+  "Alphabets": ["A", "C", "z"],
+  "Numbers": ["1", "2"],
+  "Highest Alphabet": "z"
+}
+
+    </div>
+  );
+}
+
+export default App;
